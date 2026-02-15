@@ -110,7 +110,7 @@
         ];
 
         function App() {
-            const [step, setStep] = useState('welcome'); // welcome, questions, loading, results
+            const [step, setStep] = useState('welcome');
             const [currentQuestion, setCurrentQuestion] = useState(0);
             const [answers, setAnswers] = useState({});
             const [apiKey, setApiKey] = useState('');
@@ -148,6 +148,12 @@
                 setError('');
 
                 try {
+                    const answersText = Object.entries(answers).map(([key, value]) => {
+                        const question = QUESTIONS.find(q => q.id === key);
+                        const answerText = Array.isArray(value) ? value.join(', ') : value;
+                        return question.question + '\nAnswer: ' + answerText;
+                    }).join('\n\n');
+
                     const prompt = `You are an expert in data discovery and classification solutions. 
 
 Based on the following requirements, recommend the top 3-5 most suitable data discovery and classification solutions from the market. For each solution, provide:
@@ -159,10 +165,7 @@ Based on the following requirements, recommend the top 3-5 most suitable data di
 5. Best for (specific use case)
 
 Requirements:
-${Object.entries(answers).map(([key, value]) => {
-    const question = QUESTIONS.find(q => q.id === key);
-    return `${question.question}\nAnswer: ${Array.isArray(value) ? value.join(', ') : value}`;
-}).join('\n\n')}
+${answersText}
 
 Format your response as a JSON array with this structure:
 [
@@ -204,7 +207,6 @@ Provide ONLY the JSON array, no other text.`;
                     const data = await response.json();
                     const content = data.content[0].text;
                     
-                    // Parse JSON response
                     const jsonMatch = content.match(/\[[\s\S]*\]/);
                     if (jsonMatch) {
                         const parsedRecommendations = JSON.parse(jsonMatch[0]);
@@ -215,7 +217,7 @@ Provide ONLY the JSON array, no other text.`;
                     }
 
                 } catch (err) {
-                    setError(`Error: ${err.message}`);
+                    setError('Error: ' + err.message);
                     setStep('questions');
                 }
             };
@@ -226,7 +228,6 @@ Provide ONLY the JSON array, no other text.`;
             return (
                 <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
                     <div className="max-w-4xl mx-auto">
-                        {/* Header */}
                         <div className="text-center mb-8">
                             <h1 className="text-4xl font-bold text-gray-800 mb-2">
                                 Data Discovery Solution Finder
@@ -234,7 +235,6 @@ Provide ONLY the JSON array, no other text.`;
                             <p className="text-gray-600">AI-powered recommendations for your data classification needs</p>
                         </div>
 
-                        {/* Welcome Screen */}
                         {step === 'welcome' && (
                             <div className="bg-white rounded-lg shadow-xl p-8">
                                 <h2 className="text-2xl font-bold mb-4">Welcome!</h2>
@@ -256,7 +256,10 @@ Provide ONLY the JSON array, no other text.`;
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
                                     <p className="text-sm text-gray-500 mt-2">
-                                        Get your free API key at <a href="https://console.anthropic.com/" target="_blank" className="text-blue-600 hover:underline">console.anthropic.com</a>
+                                        Get your free API key at{' '}
+                                        <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                            console.anthropic.com
+                                        </a>
                                     </p>
                                 </div>
 
@@ -277,7 +280,6 @@ Provide ONLY the JSON array, no other text.`;
                             </div>
                         )}
 
-                        {/* Questions */}
                         {step === 'questions' && (
                             <div className="bg-white rounded-lg shadow-xl p-8">
                                 <div className="mb-6">
@@ -292,7 +294,7 @@ Provide ONLY the JSON array, no other text.`;
                                     <div className="w-full bg-gray-200 rounded-full h-2">
                                         <div
                                             className="bg-blue-600 h-2 rounded-full transition-all"
-                                            style={{ width: `${((currentQuestion + 1) / QUESTIONS.length) * 100}%` }}
+                                            style={{ width: ((currentQuestion + 1) / QUESTIONS.length) * 100 + '%' }}
                                         ></div>
                                     </div>
                                 </div>
@@ -300,35 +302,41 @@ Provide ONLY the JSON array, no other text.`;
                                 <h2 className="text-2xl font-bold mb-6">{currentQ.question}</h2>
 
                                 <div className="space-y-3 mb-8">
-                                    {currentQ.options.map((option, idx) => (
-                                        <label
-                                            key={idx}
-                                            className={`block p-4 border-2 rounded-lg cursor-pointer transition ${
-                                                currentQ.multiple
-                                                    ? (currentAnswer?.includes(option) ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-blue-300')
-                                                    : (currentAnswer === option ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-blue-300')
-                                            }`}
-                                        >
-                                            <input
-                                                type={currentQ.multiple ? 'checkbox' : 'radio'}
-                                                name={currentQ.id}
-                                                checked={currentQ.multiple ? currentAnswer?.includes(option) : currentAnswer === option}
-                                                onChange={() => {
-                                                    if (currentQ.multiple) {
-                                                        const current = currentAnswer || [];
-                                                        const updated = current.includes(option)
-                                                            ? current.filter(item => item !== option)
-                                                            : [...current, option];
-                                                        handleAnswer(currentQ.id, updated);
-                                                    } else {
-                                                        handleAnswer(currentQ.id, option);
-                                                    }
-                                                }}
-                                                className="mr-3"
-                                            />
-                                            <span className="font-medium">{option}</span>
-                                        </label>
-                                    ))}
+                                    {currentQ.options.map((option, idx) => {
+                                        const isChecked = currentQ.multiple 
+                                            ? (currentAnswer && currentAnswer.includes(option))
+                                            : (currentAnswer === option);
+                                        
+                                        const borderClass = isChecked 
+                                            ? 'border-blue-600 bg-blue-50' 
+                                            : 'border-gray-200 hover:border-blue-300';
+
+                                        return (
+                                            <label
+                                                key={idx}
+                                                className={'block p-4 border-2 rounded-lg cursor-pointer transition ' + borderClass}
+                                            >
+                                                <input
+                                                    type={currentQ.multiple ? 'checkbox' : 'radio'}
+                                                    name={currentQ.id}
+                                                    checked={isChecked}
+                                                    onChange={() => {
+                                                        if (currentQ.multiple) {
+                                                            const current = currentAnswer || [];
+                                                            const updated = current.includes(option)
+                                                                ? current.filter(item => item !== option)
+                                                                : [...current, option];
+                                                            handleAnswer(currentQ.id, updated);
+                                                        } else {
+                                                            handleAnswer(currentQ.id, option);
+                                                        }
+                                                    }}
+                                                    className="mr-3"
+                                                />
+                                                <span className="font-medium">{option}</span>
+                                            </label>
+                                        );
+                                    })}
                                 </div>
 
                                 <div className="flex justify-between">
@@ -350,7 +358,6 @@ Provide ONLY the JSON array, no other text.`;
                             </div>
                         )}
 
-                        {/* Loading */}
                         {step === 'loading' && (
                             <div className="bg-white rounded-lg shadow-xl p-12 text-center">
                                 <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -359,7 +366,6 @@ Provide ONLY the JSON array, no other text.`;
                             </div>
                         )}
 
-                        {/* Results */}
                         {step === 'results' && recommendations && (
                             <div className="space-y-6">
                                 <div className="bg-white rounded-lg shadow-xl p-8">
@@ -407,7 +413,7 @@ Provide ONLY the JSON array, no other text.`;
                                         </div>
 
                                         {solution.website && (
-                                            
+                                            <a
                                                 href={solution.website}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
@@ -445,7 +451,8 @@ Provide ONLY the JSON array, no other text.`;
             );
         }
 
-        ReactDOM.render(<App />, document.getElementById('root'));
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
