@@ -1,0 +1,12 @@
+{
+  "name": "data-discovery-solution-finder",
+  "version": "1.0.0",
+  "description": "AI-powered data discovery and classification solution finder",
+  "main": "api/generate.js",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "keywords": ["data-discovery", "ai", "anthropic"],
+  "author": "",
+  "license": "MIT"
+}
